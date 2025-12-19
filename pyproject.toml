@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "casa"
+requires-python = ">= 3.10,<3.11"
+description = "Kyutai in da house"
+maintainers = [
+    { name = "Amélie Royer", email = "amelie@kyutai.org" }
+]
+version = "0.2.0"
+readme = "README.md"
+
+dependencies = [
+    "fire",
+    "rich",
+    "einops>=0.8.1",
+    "transformers==4.51.3",
+    "torch==2.7.0",
+    "torchvision==0.22.0",
+    "flash-attn @ https://github.com/Dao-AILab/flash-attention/releases/download/v2.8.0.post2/flash_attn-2.8.0.post2+cu12torch2.7cxx11abiTRUE-cp310-cp310-linux_x86_64.whl"
+]
+
+[tool.setuptools]
+py-modules = ["scripts"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+
+# Formatting and Typing
+[tool.ruff]
+line-length = 100
+
+[tool.pyright]
+useLibraryCodeForTypes = false
+reportTypedDictNotRequiredAccess = false
+reportMissingParameterType = true
+
+[tool.ruff.lint]
+ignore = ["E731"]
+extend-select = ["I"]
+
