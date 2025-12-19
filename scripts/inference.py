@@ -256,7 +256,7 @@ def get_eval_ai2d():
 
         def process_results(doc: dict[str, Any], predictions: list[str]) -> dict[str, Any]:
             predictions = [re.sub("^Answer: ", "", predictions[0])]
-            target = ai2d_doc_to_target(doc, "mcq")  # "qa" for qwen-vl
+            target = ai2d_doc_to_target(doc, "mcq")
             pred = ai2d_filter.apply(predictions, [doc])
             return {"exact_match": 1.0 if target == pred[0] else 0.0}
 
@@ -326,7 +326,7 @@ def format_question(
 
 
 def infer(
-    model_id: Literal["CASA-Qwen-2_5-VL-3B", "CASA-Helium1-VL-2B", "Helium1-VL-2B"],
+    model_id: Literal["CASA-Qwen2_5-VL-3B", "CASA-Helium1-VL-2B", "Helium1-VL-2B"],
     dataset_name: Literal[
         "chartqa",
         "textvqa",
@@ -376,7 +376,7 @@ def infer(
         torch_dtype=torch.bfloat16,
         attn_implementation="flash_attention_2",
     ).to("cuda")
-    processor = AutoProcessor.from_pretrained(model_id, img_size=img_size, trust_remote_code=True)
+    processor = AutoProcessor.from_pretrained(model_id, image_size=img_size, trust_remote_code=True)
     processor.tokenizer.padding_side = "left"
     predictions = {}
     pbar = tqdm(enumerate(dataset), total=len(dataset), ncols=80)

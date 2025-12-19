@@ -175,14 +175,6 @@ def __convert_to_progressive_subtitles__(
 class EMARepetitionPenalty(LogitsProcessor):
     """
     Repetition penalty using an EMA (exponential moving average) over sampled tokens.
-
-    Usage:
-        processor = EMARepetitionPenalty(penalty=1.2, vocab_size=50257, decay=0.99)
-        ...
-        while generating:
-            logits = processor(input_ids, logits)
-            next_token = sample(logits)
-            processor.update(next_token)
     """
 
     def __init__(
@@ -204,30 +196,10 @@ class EMARepetitionPenalty(LogitsProcessor):
         self.ema_counts = torch.zeros(vocab_size, dtype=torch.float32)
         self.max_clamp = max_clamp
 
-    # ----------------------------------------------------------------------
-    # 1) EXPLICIT UPDATE CALL
-    # ----------------------------------------------------------------------
-    def update(self, token_id: int | torch.Tensor):
-        """
-        Tell the processor which token was actually sampled.
-        This updates the EMA state, but does NOT modify logits.
-        """
-        if isinstance(token_id, torch.Tensor):
-            token_id = int(token_id.item())
-
-        # Decay all old counts
-        self.ema_counts.mul_(self.decay)
-
-        # Add current token
-        self.ema_counts[token_id] += 1
-
     def reset(self):
         """Clear EMA state between independent generations."""
         self.ema_counts.zero_()
 
-    # ----------------------------------------------------------------------
-    # 2) PURE PENALTY APPLICATION
-    # ----------------------------------------------------------------------
     def __call__(self, input_ids: torch.Tensor, scores: torch.Tensor):  # type: ignore[override]
         """
         Apply EMA-based repetition penalty to logits.
@@ -240,7 +212,7 @@ class EMARepetitionPenalty(LogitsProcessor):
             self.ema_counts = self.ema_counts.to(scores.device)
 
         # Update
-        assert input_ids.shape[0] == 1, "EMARepetitionPeanlty expects batch size 1"
+        assert input_ids.shape[0] == 1, "EMARepetitionPenalty expects batch size 1"
         latest_token_id = int(input_ids[0, -1].item())
         self.ema_counts.mul_(self.decay)
         self.ema_counts[latest_token_id] += 1
@@ -308,6 +280,8 @@ def gen_subtitles(
     max_new_tokens: int = 20,
     fps: int = 2,
     repetition_penalty: float = 1.15,
+    repetition_penalty_max_count: int = 5,
+    repetition_penalty_decay: float = 0.99,
     prompt: str = "This video shows",
     temp: float = 0.4,
     top_k: int = 256,
@@ -322,6 +296,9 @@ def gen_subtitles(
     :param max_new_token: Max number of tokens to generate per frame
     :param fps: Fps for video frame extraction
     :param repetition_penalty: Repetition penalty
+    :param repetition_penalty_max_count: Increase penalty by the count of each token,
+        using this value as the maximum count
+    :param repetition_penalty_decay: Decay for the count of repeated penalty
     :param prompt: Initial prompt
     :param temp: Sampling temperature
     :param top_k: Sampling top_k
@@ -332,7 +309,7 @@ def gen_subtitles(
         False, will only generate subtitles in a json file
     """
     # Init model and processor
-    model_id = "kyutai/CASA-Qwen-2_5-VL-3B-LiveCC"
+    model_id = "kyutai/CASA-Qwen2_5-VL-3B-LiveCC"
     model = AutoModel.from_pretrained(
         model_id,
         trust_remote_code=True,
@@ -374,8 +351,10 @@ def gen_subtitles(
             EMARepetitionPenalty(
                 penalty=repetition_penalty,
                 vocab_size=151936,
-                # weird edge case where 715 linejump token
+                # 715 linejump token are generally preceded by `220`
                 ignore_tokens=[220, stop_token],
+                decay=repetition_penalty_decay,
+                max_clamp=repetition_penalty_max_count,
             ),
             TokenBiasProcessor([stop_token], eos_bias),
         ]
@@ -390,6 +369,8 @@ def gen_subtitles(
                 penalty=repetition_penalty,
                 vocab_size=len(processor.tokenizer),
                 ignore_tokens=[stop_token],
+                decay=repetition_penalty_decay,
+                max_clamp=repetition_penalty_max_count,
             ),
             TokenBiasProcessor([stop_token], eos_bias),
         ]
@@ -403,7 +384,7 @@ def gen_subtitles(
     subtitles_delay: list[tuple[float, float, str]] = []
     # Generation is represented as one long `assistant turn` so we do not end it
     processor.asst_end_tokens = []
-    full_caption = ""
+    transcript = ""
 
     timing_hook = TimingHook()
     handle = model.register_forward_hook(timing_hook)
@@ -536,11 +517,15 @@ def gen_subtitles(
             )
 
         # Display current Gen
-        if not srt:
-            full_caption += f"[grey]{__format_srt_time__(start_timestamp, full=True)}[/grey] (mem: {memory_so_far:.2f} GB) [bold green]{pred_s.strip()}[/bold green]\n"
+        transcript += f" {pred_s}"
     handle.remove()
+
+    transcript = transcript.replace("  ", " ")
+    with open(output_data_path, "a") as wf:
+        wf.write(json.dumps(dict(full_transcript=transcript)) + "\n")
+
     if not srt:
-        rich.print(full_caption)
+        rich.print(f"[cyan]Transcript[/cyan]: {transcript}")
         rich.print(f"\nGenerated captions output in [yellow]{output_data_path}[/yellow]")
 
     # Write subtitles file
@@ -571,6 +556,8 @@ def gen_subtitles(
         subtitle_format = """fonts:force_style='FontSize=16,PrimaryColour=&H0039F2AE,OutlineColour=&H80000000,Outline=1,Bold=0,Alignment=4,MarginR=20'"""
         cmd = f'ffmpeg -y -i {output_video_path} -vf subtitles="{subtitles_file[1]}:{subtitle_format}" {final_video_path}'
         subprocess.run(cmd, shell=True)
+
+        rich.print(f"[cyan]Transcript[/cyan]: {transcript}")
         rich.print(f"Final video output in [yellow]{final_video_path}[/yellow]")
         rich.print(f"Generated captions output in [yellow]{output_data_path}[/yellow]")
 
