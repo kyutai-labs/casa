@@ -1,6 +1,11 @@
 // final trim:
 // ffmpeg -i full_res.mp4 -vf "crop=1200:1050:0:150" full_res_trimmed.mp4
 // ffmpeg -i half_res.mp4 -vf "crop=600:525:0:75" half_res_trimmed.mp4
+/// SVGs:
+// mkdir casa-animation/assets
+// cat-svg-repo-com-3.svg => https://www.svgrepo.com/svg/524392/cat
+// cat-svgrepo-com-2.svg => https://www.svgrepo.com/svg/452952/cat
+// house-window-svgrepo-com.svg => https://www.svgrepo.com/svg/533523/house-window
 import { SVG, makeScene2D } from "@motion-canvas/2d";
 import { createRef, waitFor, all, loop } from "@motion-canvas/core";
 import {
@@ -59,12 +64,12 @@ export default makeScene2D(function* (view) {
   const casaOutputs = [createRef<Rect>(), createRef<Rect>(), createRef<Rect>()];
   const downArrows = [createRef<Line>(), createRef<Line>(), createRef<Line>()];
   const upArrows = [createRef<Line>(), createRef<Line>(), createRef<Line>()];
-  const mergedCats = [
+  const tokenToFrameLooped = [
     createRef<Layout>(),
     createRef<Layout>(),
     createRef<Layout>(),
   ];
-  const mergedBorders = [
+  const tokenToFrameBordersLooped = [
     createRef<Layout>(),
     createRef<Layout>(),
     createRef<Layout>(),
@@ -147,12 +152,12 @@ export default makeScene2D(function* (view) {
     const tokenLayout = (
       <Layout
         ref={tokenGroups[i]}
-        x={start_x - 35 + i * space_between_frames}
+        x={start_x - (i == 0 ? 55 : 35) + i * space_between_frames}
         y={token_y}
         opacity={0}
         direction="row"
       >
-        {[...Array(3)].map((_, j) => (
+        {[...Array(i == 0 ? 4 : 3)].map((_, j) => (
           <Rect
             width={30}
             height={30}
@@ -242,12 +247,12 @@ export default makeScene2D(function* (view) {
     const tokenLayout = (
       <Layout
         ref={saOutputs[i]}
-        x={start_x - 110 + (i - 1) * 120}
+        x={start_x - 120 + (i - 1) * 120}
         y={sa_y - 200}
         opacity={0}
         direction="row"
       >
-        {[...Array(3)].map((_, j) => (
+        {[...Array(i == 0 ? 4 : 3)].map((_, j) => (
           <Rect
             width={30}
             height={30}
@@ -271,12 +276,12 @@ export default makeScene2D(function* (view) {
     const tokenLayout = (
       <Layout
         ref={casaOutputs[i]}
-        x={casa_x - 150 + (i - 1) * 120}
+        x={casa_x - 180 + (i - 1) * 120}
         y={casa_y - 200}
         opacity={0}
         direction="row"
       >
-        {[...Array(3)].map((_, j) => (
+        {[...Array(i == 0 ? 4 : 3)].map((_, j) => (
           <Rect
             width={30}
             height={30}
@@ -292,16 +297,16 @@ export default makeScene2D(function* (view) {
         ))}
 
         {i == 0
-          ? createCat(mergedCats[i])
+          ? createCat(tokenToFrameLooped[i])
           : i == 1
-          ? createMeow(mergedCats[i])
-          : createHouse(mergedCats[i])}
-        {createBorders(mergedBorders[i])}
+          ? createMeow(tokenToFrameLooped[i])
+          : createHouse(tokenToFrameLooped[i])}
+        {createBorders(tokenToFrameBordersLooped[i])}
       </Layout>
     );
     view.add(tokenLayout);
-    mergedCats[i]().opacity(0);
-    mergedBorders[i]().opacity(0);
+    tokenToFrameLooped[i]().opacity(0);
+    tokenToFrameBordersLooped[i]().opacity(0);
   }
 
   // Add arrows (hidden initially)
@@ -339,6 +344,7 @@ export default makeScene2D(function* (view) {
   }
 
   // Legend
+  const legend_x = 50;
   view.add(
     <Txt
       ref={legend[0]}
@@ -347,7 +353,7 @@ export default makeScene2D(function* (view) {
       fontSize={legendSize}
       fontFamily="Arial"
       fontWeight={600}
-      x={0}
+      x={legend_x}
       y={frame_y + 200}
       opacity={0}
     />
@@ -360,7 +366,7 @@ export default makeScene2D(function* (view) {
       fontSize={legendSize}
       fontFamily="Arial"
       fontWeight={600}
-      x={0}
+      x={legend_x}
       y={frame_y - 100}
       opacity={0}
     />
@@ -373,7 +379,7 @@ export default makeScene2D(function* (view) {
       fontSize={legendSize}
       fontFamily="Arial"
       fontWeight={600}
-      x={0}
+      x={legend_x}
       y={token_y}
       opacity={0}
     />
@@ -386,7 +392,7 @@ export default makeScene2D(function* (view) {
       fontSize={legendSize}
       fontFamily="Arial"
       fontWeight={600}
-      x={0}
+      x={legend_x}
       y={casa_y - 200}
       opacity={0}
     />
@@ -394,8 +400,8 @@ export default makeScene2D(function* (view) {
 
   yield* all(...legend.map((a) => a().opacity(1, 0.8)));
   yield* waitFor(0.8);
-  yield* all(...legend.map((a) => a().opacity(0, 0.8)));
-  yield* waitFor(0.8);
+  //
+  //yield* waitFor(0.8);
 
   // Process each token group one by one
   for (let i = 0; i < 3; i++) {
@@ -410,11 +416,20 @@ export default makeScene2D(function* (view) {
       saBlock().opacity(1, 0.5),
       casaBlock().opacity(0.3, 0.5),
       tokenBorder().opacity(1, 0.5),
-      tokenBorder().width((i / 2) * space_between_frames + 150 * (i + 1), 0.5),
-      tokenBorder().position.x(start_x + (i / 2) * space_between_frames, 0.5),
+      tokenBorder().width(
+        (i / 2) * space_between_frames + (i == 0 ? 180 : 150) * (i + 1),
+        0.5
+      ),
+      tokenBorder().position.x(
+        start_x + (i / 2) * space_between_frames + (i == 0 ? 5 : 0),
+        0.5
+      ),
       captions[i]().opacity(1, 0.5),
       saOutputs[i]().opacity(1, 0.5),
-      saOutputs[i]().position.x(saOutputs[i]().position.x() + 120, 0.5)
+      saOutputs[i]().position.x(
+        saOutputs[i]().position.x() + (i == 0 ? 120 : i == 1 ? 155 : 150),
+        0.5
+      )
     );
     yield* waitFor(0.2);
 
@@ -443,7 +458,10 @@ export default makeScene2D(function* (view) {
       saBlock().opacity(0.3, 0.5),
       casaBlock().opacity(1, 0.5),
       casaOutputs[i]().opacity(1, 0.5),
-      casaOutputs[i]().position.x(casaOutputs[i]().position.x() + 120, 0.5)
+      casaOutputs[i]().position.x(
+        casaOutputs[i]().position.x() + (i == 0 ? 120 : i == 1 ? 155 : 150),
+        0.5
+      )
     );
 
     yield* waitFor(0.4);
@@ -471,7 +489,7 @@ export default makeScene2D(function* (view) {
   yield* waitFor(0.3);
 
   // Move outputs to merge
-  const mergeX = 230;
+  const mergeX = 220;
   yield* all(
     ...saOutputs.map((o) =>
       all(
@@ -493,7 +511,8 @@ export default makeScene2D(function* (view) {
       )
     ),
     ...downArrows.map((a) => a().opacity(0, 0.8)),
-    ...upArrows.map((a) => a().opacity(0, 0.8))
+    ...upArrows.map((a) => a().opacity(0, 0.8)),
+    ...legend.map((a) => a().opacity(0, 1))
   );
 
   yield* waitFor(0.5);
@@ -501,8 +520,8 @@ export default makeScene2D(function* (view) {
   // Focus on merged tokens and start growing them
   yield* all(...saOutputs.map((o) => all(o().opacity(0, 0.8))));
 
-  // Smooth morph: grow tokens while moving and morphing into frames
-  yield* all(
+  // V1: Smooth morph: grow tokens while moving and morphing into frames
+  /*   yield* all(
     // Grow and move tokens
     ...casaOutputs.map((o, i) =>
       all(
@@ -535,13 +554,25 @@ export default makeScene2D(function* (view) {
     saBlock().opacity(0, 1.2),
     casaBlock().opacity(0, 1.2)
   );
+ */
 
+  // V2: Fade to black
+  yield* all(
+    ...captions.map((f) => f().opacity(0, 1.2)),
+    ...frames.map((f) => f().opacity(0, 1.2)),
+    ...tokenGroups.map((t) => t().opacity(0, 1.2)),
+    saBlock().opacity(0, 1.2),
+    casaBlock().opacity(0, 1.2),
+    ...casaOutputs.map((f) => f().opacity(0, 1.2))
+  );
   yield* waitFor(0.3);
 
-  // Fade in cats and borders
+  // Video frames reappear
   yield* all(
-    ...mergedCats.map((c) => c().opacity(1, 0.8)),
-    ...mergedBorders.map((b) => b().opacity(1, 0.8)),
+    ...frames.map((f) => f().position.y(frame_y, 0)),
+    ...frames.map((f) => f().opacity(1, 0.8)),
+    ...tokenToFrameLooped.map((c) => c().opacity(1, 0.8)),
+    ...tokenToFrameBordersLooped.map((b) => b().opacity(1, 0.8)),
     ...captions.map((c) => c().opacity(1, 0.8))
   );
 
