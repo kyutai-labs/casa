@@ -310,7 +310,7 @@ If you use CASA in your research, please cite our work:
   year = {2025},
   title = {CASA: Cross-Attention via Self-Attention for Efficient Vision-Language Fusion},
   journal = {ArXiv},
-  url = {}
+  url = {https://arxiv.org/abs/2512.19535}
 }
 ```
 
