@@ -1,37 +1,25 @@
-# CASA: Cross-Attention via Self-Attention for Efficient Vision-Language Fusion
+# CASA: Cross-Attention over Self-Attention for Efficient Vision-Language Fusion
 
 [[Preprint]][casa-arxiv] [[Models on Hugging Face]](https://huggingface.co/collections/kyutai/casa) [[Project Page]][blog]
 
-This repository contains inference code for pretrained CASA models; We are planning to release training code in the future. Alongside the code, we release several CASA variants with 2B to 3B parameters, which can be found in the following [HuggingFace collection](https://huggingface.co/collections/kyutai/casa). Below you can find example code to run the models, evaluate them and use them for live captioning of videos.
+This repository contains inference code for pretrained CASA models; We are planning to release training code in the future. Alongside the code, we release several models with 2B to 3B parameters, which can be found in the following [HuggingFace collection](https://huggingface.co/collections/kyutai/casa). Below you can find example code to run the models, evaluate them and use them for live captioning of videos.
 
 For more technical details on CASA, see our [project page][blog] and [preprint][casa-arxiv].
 
 ## CASA in a nutshell
 
-<table align="center">
-  <tr>
-    <td align="center" width="49%">
-      <img src="assets/sa_layer.png" alt="Standard self-attention layer" width="30%">
-      <img src="assets/sa_attn.png" alt="Standard self-attention layer" width="50%">
-      <br>
-      <em><strong>(i)</strong> Standard self-attention layer</em>
-    </td>
-    <td align="center" width="49%">
-      <img src="assets/casa_layer.png" alt="CASA layer" width="30%">
-      <img src="assets/casa_attn.png" alt="CASA layer" width="50%">
-      <br>
-      <em><strong>(ii)</strong> CASA layer w/ local attention windows</em>
-    </td>
-  </tr>
-</table>
+**CASA** models are VLMs based entirely on cross-attention (CA) with enjoys practical benefits for streaming tasks by never adding image tokens to the KVCache of the text model. 
 
-**CASA** is a vision-language fusion paradigm that aims to improve on cross-attention while preserving its practical benefits. Specifically, **CASA** layers inject visual tokens into a text stream by using image-to-text cross-attention while additionally enabling
-text-to-text self interaction in the same layer, and contained to smaller local attention windows. This simple modification enables natural gating in the cross-attention mechanism, improving its performance and substantially closing the gap to standard token insertion methods.
+Specifically, **CASA** layers inject visual tokens into a text stream by using image-to-text cross-attention, which act in smaller local attention windows.
+Simply put, at inference, the model only looks at the latest seen image explicitly. 
+We show that this setup can be naturally leveraged streaming inference e.g. on video inputs, enabling almost constant memory time and inference cost
+For qualitative samples of CASA used for live video captioning, please check the [associated HuggingFace space](https://huggingface.co/spaces/kyutai/casa-samples).
+
 
 CASA models process and fuse vision and text inputs through two mechanisms:
 
 - **(i)** Standard self-attention layers process only the text tokens, for the full context of the current sequence (_right_).
-- **(i)** CASA layers process _both_ text and image tokens but in local attention windows (_left_). The windows are defined by the points at which images occur in the stream, e.g. between two video frames. To improve efficiency, CASA layers also leverage _asymmetric block-wise attention_ implemented using Flash Attention.
+- **(i)** Cross-attention layers process _both_ text and image tokens but in local attention windows (_left_). The windows are defined by the points at which images occur in the stream, e.g. between two video frames. To improve efficiency, CASA layers also leverage _block-wise attention_ implemented using Flash Attention, and uses sequence packing during training.
 
 ## Models
 
