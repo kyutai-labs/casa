@@ -6,6 +6,12 @@ This repository contains inference code for the cross-attention-based VLMs prese
 
 All our models were trained with the standard HuggingFace Trainer API on a mixture of the [FineVision dataset](https://huggingface.co/spaces/HuggingFaceM4/FineVision) and a subset of [LLaVA-OneVision-1.5](https://huggingface.co/collections/lmms-lab/llava-onevision-15), covering image captioning, document and chart understanding, and general visual question answering. We plan to release training code in the future. For technical details, see our [project page][blog] and [preprint][casa-arxiv].
 
+
+
+https://github.com/user-attachments/assets/9f491642-c72b-4b48-89ab-713843184412
+
+
+
 ## CASA in a nutshell
 
 In the CASA preprint, we revisit cross-attention (CA) as a fusion mechanism for VLMs. Our results suggest that cross-attention deserves renewed consideration as a practical and competitive alternative to token insertion, as applications move toward longer streaming multimodal inputs.
