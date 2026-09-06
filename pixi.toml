@@ -1,0 +1,14 @@
+[workspace]
+name = "casa"
+channels = ["conda-forge"]
+platforms = ["linux-64"]
+
+# torchcodec loads the FFmpeg shared libraries at import time, so the environment's lib
+# directory has to be on the loader path, not just its bin directory on PATH.
+[activation.env]
+LD_LIBRARY_PATH = "$PIXI_PROJECT_ROOT/.pixi/envs/default/lib:$LD_LIBRARY_PATH"
+
+[dependencies]
+# `ffmpeg` binary: re-encoding the subtitled video in scripts/live_captioner.py
+# `libav*` shared libraries: video decoding through torchcodec in both captioning scripts
+ffmpeg = ">=7,<8"

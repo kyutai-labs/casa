@@ -16,6 +16,7 @@ dependencies = [
     "fire",
     "rich",
     "einops>=0.8.1",
+    "accelerate>=0.26.0",
     "transformers==4.51.3",
     "torch==2.7.0",
     "torchvision==0.22.0",

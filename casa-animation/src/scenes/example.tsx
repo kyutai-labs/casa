@@ -58,6 +58,10 @@ export default makeScene2D(function* (view) {
     createRef<Layout>(),
   ];
   const tokenBorder = createRef<Rect>();
+  // Role of each modality in the attention currently being shown: text is Q,K,V under
+  // self-attention, but only Q under cross-attention, where the frame supplies K,V.
+  const textRole = createRef<Txt>();
+  const imageRole = createRef<Txt>();
   const saBlock = createRef<Rect>();
   const casaBlock = createRef<Rect>();
   const saOutputs = [createRef<Rect>(), createRef<Rect>(), createRef<Rect>()];
@@ -186,6 +190,35 @@ export default makeScene2D(function* (view) {
     />
   );
 
+  // Role labels: one above the text tokens in play, one under the frame being attended to
+  view.add(
+    <Txt
+      ref={textRole}
+      text="Q, K, V"
+      fill="rgb(89,174,149)"
+      fontSize={32}
+      fontFamily="Arial"
+      fontWeight={700}
+      x={sa_x}
+      // Clears the top edge of tokenBorder (height 170, centred on token_y)
+      y={token_y - 110}
+      opacity={0}
+    />
+  );
+  view.add(
+    <Txt
+      ref={imageRole}
+      text="K, V"
+      fill="rgb(244,185,91)"
+      fontSize={32}
+      fontFamily="Arial"
+      fontWeight={700}
+      x={start_x}
+      y={frame_y + 110}
+      opacity={0}
+    />
+  );
+
   // Add L2 block (above LAYER) - moved further right
   view.add(
     <Rect
@@ -203,9 +236,9 @@ export default makeScene2D(function* (view) {
       opacity={0}
     >
       <Txt
-        text="Self-Attention"
+        text="Self-attention"
         fill="rgb(89,174,149)"
-        fontSize={32}
+        fontSize={26}
         fontWeight={600}
       />
     </Rect>
@@ -227,7 +260,12 @@ export default makeScene2D(function* (view) {
       lineWidth={2}
       opacity={0}
     >
-      <Txt text="CASA" fill="rgb(244,185,91)" fontSize={32} fontWeight={600} />
+      <Txt
+        text="Cross-attention"
+        fill="rgb(244,185,91)"
+        fontSize={26}
+        fontWeight={600}
+      />
     </Rect>
   );
 
@@ -411,8 +449,17 @@ export default makeScene2D(function* (view) {
       return t().opacity(0.3, 0.5);
     });
 
+    // Self-attention: the text tokens are queries, keys and values at once
+    textRole().text("Q, K, V");
+    textRole().fill("rgb(89,174,149)");
+
     yield* all(
       ...opacityPromises1,
+      textRole().opacity(1, 0.5),
+      textRole().position.x(
+        start_x + (i / 2) * space_between_frames + (i == 0 ? 5 : 0),
+        0.5
+      ),
       saBlock().opacity(1, 0.5),
       casaBlock().opacity(0.3, 0.5),
       tokenBorder().opacity(1, 0.5),
@@ -440,18 +487,28 @@ export default makeScene2D(function* (view) {
     yield* all(
       ...opacityPromisesInter,
       tokenBorder().opacity(0, 0.8),
+      textRole().opacity(0, 0.8),
       saBlock().opacity(0.3, 0.8)
     );
     yield* waitFor(0.4);
 
-    // SECOND ANIMATION: Focus current group only, LAYER opaque, L2 translucid, frame goes down
-    const opacityPromises2 = tokenGroups.map((t, idx) => {
-      if (idx === i) return t().opacity(1, 0.5);
-      return t().opacity(0.3, 0.5);
-    });
+    // SECOND ANIMATION: LAYER opaque, L2 translucid, frame comes up as the attended source.
+    // Cross-attention reads *only* the latest frame as keys/values, so every text group stays
+    // dim here: the current text tokens are queries, never part of the attended-over context.
+    const opacityPromises2 = tokenGroups.map((t) => t().opacity(0.3, 0.5));
+
+    // Cross-attention: the current text tokens are queries only, the frame supplies K,V.
+    // Both labels are hidden at this point, so they can be repositioned instantly.
+    const groupX = start_x - (i == 0 ? 55 : 35) + i * space_between_frames;
+    textRole().text("Q");
+    textRole().fill("rgb(244,185,91)");
+    textRole().position.x(groupX + ((i == 0 ? 4 : 3) - 1) * 19);
+    imageRole().position.x(start_x + i * space_between_frames);
 
     yield* all(
       ...opacityPromises2,
+      textRole().opacity(1, 0.5),
+      imageRole().opacity(1, 0.5),
       frames[i]().position.y(frame_y, 0.8),
       frames[i]().opacity(1, 0.8),
       tokenBorder().opacity(0, 0.5),
@@ -469,6 +526,8 @@ export default makeScene2D(function* (view) {
     yield* all(
       frames[i]().position.y(frame_y_down, 0.8),
       frames[i]().opacity(0.3, 0.8),
+      textRole().opacity(0, 0.8),
+      imageRole().opacity(0, 0.8),
       casaBlock().opacity(0.3, 0.5)
     );
 

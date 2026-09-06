@@ -1,0 +1,16 @@
+# pixi environment (system dependencies, see pixi.toml); pixi.lock is committed
+.pixi/
+
+# Node (casa-animation)
+node_modules/
+.vite/
+
+# Python
+__pycache__/
+*.egg-info/
+.venv/
+.ruff_cache/
+
+# Local inputs and script outputs
+livecc_samples/
+tmp.out/
