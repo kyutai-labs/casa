@@ -42,3 +42,5 @@ reportMissingParameterType = true
 ignore = ["E731"]
 extend-select = ["I"]
 
+[tool.uv]
+exclude-newer = "7 days"

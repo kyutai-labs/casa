@@ -1,4 +1,5 @@
 [workspace]
+exclude-newer = "7d"
 name = "casa"
 channels = ["conda-forge"]
 platforms = ["linux-64"]
